@@ -1,0 +1,14 @@
+C:\Users\Ekaterina\BnB\obj\Debug\net10.0\CncTsp.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Ekaterina\BnB\obj\Debug\net10.0\CncTsp.AssemblyInfoInputs.cache
+C:\Users\Ekaterina\BnB\obj\Debug\net10.0\CncTsp.AssemblyInfo.cs
+C:\Users\Ekaterina\BnB\obj\Debug\net10.0\CncTsp.csproj.CoreCompileInputs.cache
+C:\Users\Ekaterina\BnB\bin\Debug\net10.0\CncTsp.exe
+C:\Users\Ekaterina\BnB\bin\Debug\net10.0\CncTsp.deps.json
+C:\Users\Ekaterina\BnB\bin\Debug\net10.0\CncTsp.runtimeconfig.json
+C:\Users\Ekaterina\BnB\bin\Debug\net10.0\CncTsp.dll
+C:\Users\Ekaterina\BnB\bin\Debug\net10.0\CncTsp.pdb
+C:\Users\Ekaterina\BnB\obj\Debug\net10.0\CncTsp.dll
+C:\Users\Ekaterina\BnB\obj\Debug\net10.0\refint\CncTsp.dll
+C:\Users\Ekaterina\BnB\obj\Debug\net10.0\CncTsp.pdb
+C:\Users\Ekaterina\BnB\obj\Debug\net10.0\CncTsp.genruntimeconfig.cache
+C:\Users\Ekaterina\BnB\obj\Debug\net10.0\ref\CncTsp.dll

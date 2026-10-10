@@ -1,0 +1,132 @@
+@startuml "CNC_TSP_C4_Architecture_CSharp"
+
+skinparam {
+    Backgroundcolor white
+    Shadowing false
+    DefaultFontName "Helvetica"
+    DefaultFontSize 11
+}
+
+skinparam rectangle {
+    BackgroundColor<<person>> #08427B
+    BorderColor<<person>> #052E56
+    FontColor<<person>> #FFFFFF
+
+    BackgroundColor<<container>> #438DD5
+    BorderColor<<container>> #3C7FC1
+    FontColor<<container>> #FFFFFF
+    RoundCorner<<container>> 8
+
+    BackgroundColor<<store>> #2E7D32
+    BorderColor<<store>> #1B5E20
+    FontColor<<store>> #FFFFFF
+    RoundCorner<<store>> 8
+
+    BackgroundColor<<artifact>> #B8860B
+    BorderColor<<artifact>> #8B6508
+    FontColor<<artifact>> #FFFFFF
+    RoundCorner<<artifact>> 8
+
+    BackgroundColor<<external>> #999999
+    BorderColor<<external>> #888888
+    FontColor<<external>> #FFFFFF
+    RoundCorner<<external>> 8
+}
+
+skinparam database {
+    BackgroundColor #999999
+    BorderColor #888888
+    FontColor #FFFFFF
+}
+
+skinparam Arrow {
+    Color #666666
+    FontColor #333333
+    FontSize 10
+}
+
+title C4-контейнеры: ресурсно-эффективный BnB для TSP (C#)
+
+' ---- АКТОР ----
+rectangle "Исследователь\n<size:9>запускает оба процесса вручную</size>" as researcher <<person>>
+
+' =========================================================
+' ПРОЦЕСС 1: C# SOLVER (внутри .NET Runtime)
+' =========================================================
+node "Процесс: CNC TSP Solver\n<size:9>[.NET Runtime, C#]</size>" {
+
+    rectangle "CLI / Orchestrator\n<size:9>[C# Console App]</size>\nАргументы, конфиг, порядок этапов,\nзамер памяти и времени" as cli <<container>>
+
+    rectangle "TSPLIB Parser\n<size:9>[C# Reader]</size>\nEUC_2D / EXPLICIT / GEO,\nNODE_COORD_SECTION → веса" as parser <<container>>
+
+    rectangle "Matrix Store\n<size:9>[C# Shared Buffer]</size>\nПлоская 1D double[],\nArrayPool<double>, Span<double>" as matrix <<store>>
+
+    rectangle "Upper Bound Engine\n<size:9>[C# Heuristic]</size>\n2-opt (+ Or-opt, don't-look bits),\nжадный/NN старт" as upper <<container>>
+
+    rectangle "BnB Core\n<size:9>[C# Core Engine]</size>\nDFS-обход, ветвление по Литтлу,\nотсечения по bound" as bnb <<container>>
+
+    rectangle "Node Delta Store\n<size:9>[C# Node Memory]</size>\nУзел = (parent, дуга (i,j),\nдельта-изменения, штраф)\nбез копий матрицы" as tree <<container>>
+
+    rectangle "Snapshot / Rollback\n<size:9>[C# Backtracking]</size>\nTrail изменённых ячеек,\nоткат при возврате по DFS" as snap <<container>>
+
+    rectangle "Lower Bound Calculator\n<size:9>[C# Graph Algos]</size>\n1-tree Хелда-Карпа +\nsubgradient по π" as lower <<container>>
+
+    rectangle "Metrics & Logger\n<size:9>[C# Subsystem]</size>\nОЗУ, время, узлы, отсечения\n→ консоль / CSV" as logger <<container>>
+}
+
+' =========================================================
+' ПРОЦЕСС 2: CONCORDE (независимый эталон)
+' =========================================================
+node "Процесс: Concorde TSP Solver\n<size:9>[Independent Executable]</size>\nЗапускается отдельно,\nне связан с C#-процессом" as concorde <<external>>
+
+' =========================================================
+' АРТЕФАКТЫ (точки сопряжения процессов)
+' =========================================================
+database "TSPLIB Dataset\n<size:9>[.tsp файлы]</size>" as tsplib <<external>>
+
+rectangle "tour.txt (C#)\n<size:9>[Output Artifact]</size>\nНайденный тур + длина" as tourOut <<artifact>>
+
+rectangle "optimal.tour (Concorde)\n<size:9>[Output Artifact]</size>\nЭталонный тур" as tourRef <<artifact>>
+
+rectangle "metrics.csv (C#)\n<size:9>[Output Artifact]</size>\nПик ОЗУ, узлы, время,\ngap к эталону" as metrics <<artifact>>
+
+' =========================================================
+' СВЯЗИ
+' =========================================================
+
+' --- Этап 1: загрузка данных (C#) ---
+researcher --> cli : "запуск C#-солвера\nс путём к .tsp"
+cli --> parser : "передаёт путь"
+parser --> tsplib : "читает .tsp"
+parser --> matrix : "заполняет 1D-массив весов"
+
+' --- Этап 2: верхняя граница (C#) ---
+cli --> upper : "старт после готовности матрицы"
+upper --> matrix : "читает веса"
+upper --> bnb : "начальный рекорд (Upper Bound)"
+
+' --- Этап 3: BnB-цикл (C#) ---
+cli --> bnb : "запуск оптимизации"
+bnb --> tree : "создать/извлечь узел\n(parent + дельта)"
+bnb --> snap : "применить дельту\nперед раскрытием"
+snap --> matrix : "мутирует общие ячейки\n(in-place)"
+bnb --> lower : "запрос оценки для узла"
+lower --> matrix : "1-tree поверх текущего\nсостояния (запреты/фиксации)"
+lower --> bnb : "нижняя граница узла"
+snap --> tree : "откат изменений\nпри возврате по DFS"
+
+' --- Этап 4: метрики (C#) ---
+bnb --> logger : "узлы, отсечения, глубина"
+lower --> logger : "время оценки"
+upper --> logger : "качество старта"
+logger --> metrics : "пишет CSV"
+bnb --> tourOut : "финальный тур"
+
+' --- Независимая верификация ---
+researcher --> concorde : "запускает на тех же .tsp"
+concorde --> tsplib : "читает .tsp"
+concorde --> tourRef : "пишет эталонный тур"
+tourRef ..> metrics : "сравнение offline:\ngap = (tour - opt) / opt"
+tourOut ..> metrics : "сравнение offline"
+
+@enduml
