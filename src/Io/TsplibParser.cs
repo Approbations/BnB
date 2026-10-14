@@ -144,12 +144,24 @@ public static class TsplibParser
             return m;
 
             case EdgeWeightFormat.UpperRow:
+            for (int i = 0; i < n; i++)
+                for (int j = i + 1; j < n; j++){
+                    matrix[i * n + j] = matrix[j * n + i] = m[idx++];
+                }
             break;
 
             case EdgeWeightFormat.LowerRow:
+            for (int i = 1; i < n; i++)
+                for (int j = 0; j < i; j++){
+                    matrix[i * n + j] = matrix[j * n + i] = m[idx++];
+                }
             break;
 
             case EdgeWeightFormat.UpperDiagRow:
+            for (int i = 0; i < n; i++)
+                for (int j = i; j < n; j++){
+                    matrix[i * n + j] = matrix[j * n + i] = m[idx++];
+                }
             break;
 
             case EdgeWeightFormat.LowerDiagRow:
